@@ -23,11 +23,13 @@ Many developers struggle with self-hosting Next.js applications. The good news i
 In your `next.config.ts`, enable standalone output for an optimized production build:
 
 ```js
-const nextConfig = {
-  output: 'standalone',
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+    output: "standalone"
 }
 
-module.exports = nextConfig
+export default nextConfig
 ```
 
 ## Step 2: Set Up Your Server
