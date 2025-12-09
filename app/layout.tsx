@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
-import { Cormorant_Garamond, Poppins } from "next/font/google"
+import { JetBrains_Mono, Poppins } from "next/font/google"
 import "./globals.css"
 
-const cormorantGaramond = Cormorant_Garamond({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-cormorant-garamond",
-  weight: ["400"],
+  variable: "--font-jetbrains-mono",
+  weight: ["400", "500", "600"],
 })
 
 const poppins = Poppins({
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${cormorantGaramond.variable} ${poppins.variable} bg-neutral-100`}
+        className={`${jetbrainsMono.variable} ${poppins.variable} bg-neutral-100`}
       >
         {children}
       </body>

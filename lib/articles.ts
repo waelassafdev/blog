@@ -11,11 +11,13 @@ const articlesDirectory = path.join(process.cwd(), "articles")
 
 export const getArticleSlugs = (): string[] => {
   const fileNames = fs.readdirSync(articlesDirectory)
-  return fileNames.map((fileName) => fileName.replace(/\.md$/, ""))
+  return fileNames
+    .filter((fileName) => fileName.endsWith(".md"))
+    .map((fileName) => fileName.replace(/\.md$/, ""))
 }
 
 const getSortedArticles = (): ArticleItem[] => {
-  const fileNames = fs.readdirSync(articlesDirectory)
+  const fileNames = fs.readdirSync(articlesDirectory).filter((f) => f.endsWith(".md"))
 
   const allArticlesData = fileNames.map((fileName) => {
     const id = fileName.replace(/\.md$/, "")

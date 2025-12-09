@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-cormorant-garamond: var(--font-cormorant-garamond);
+  --font-jetbrains-mono: var(--font-jetbrains-mono);
   --font-poppins: var(--font-poppins);
 }
 
-.font-cormorantGaramond {
-  font-family: var(--font-cormorant-garamond), serif;
+.font-jetbrainsMono {
+  font-family: var(--font-jetbrains-mono), monospace;
 }
 
 .font-poppins {
@@ -24,17 +24,19 @@
 }
 
 .article > h1 {
-  font-family: var(--font-cormorant-garamond), serif;
+  font-family: var(--font-jetbrains-mono), monospace;
   font-size: 2.25rem;
   text-align: center;
   letter-spacing: -0.025em;
+  font-weight: 600;
 }
 
 .article > h2 {
-  font-family: var(--font-cormorant-garamond), serif;
+  font-family: var(--font-jetbrains-mono), monospace;
   font-size: 1.875rem;
   letter-spacing: -0.025em;
   margin-top: 1rem;
+  font-weight: 500;
 }
 
 .article > ol {
