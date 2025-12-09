@@ -6,7 +6,7 @@ date: "08-12-2024"
 
 # Have $5? Let's Self-Host a Next.js app
 
-Got $5 and a Next.js app you want to deploy? Let's skip Vercel and host it yourself.
+Got $5 and a Next.js app you want to deploy? Then host it yourself
 
 Many developers struggle with self-hosting Next.js applications. The good news is that **all Next.js features work when self-hosting with Docker** — Server Actions, middleware (now called proxy in v16), internationalization, API routes — everything.
 
