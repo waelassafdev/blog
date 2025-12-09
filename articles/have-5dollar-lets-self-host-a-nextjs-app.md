@@ -6,16 +6,16 @@ date: "08-12-2024"
 
 # Have $5? Let's Self-Host a Next.js app
 
-Got $5 and a Next.js app you want to deploy? Then host it yourself
+Many developers think they MUST use Vercel or other services to host Next.js applications.
 
-Many developers struggle with self-hosting Next.js applications. The good news is that **all Next.js features work when self-hosting with Docker** — Server Actions, middleware (now called proxy in v16), internationalization, API routes — everything.
+The good news is that **all Next.js features work when self-hosting with Docker** — Server Actions, middleware (now called proxy in v16), internationalization, API routes — everything.
 
 ## What You'll Need
 
 - **Docker** — to containerize your app
 - **Kamal 2.0** — a deployment tool with zero-downtime deploys
 - **A VPS** — any $5/month server works (Hetzner, DigitalOcean, etc.)
-- **Cloudflare** — optional, but great for CDN and DNS
+- **Cloudflare** — optional
 - **GitHub Actions** — for CI/CD automation
 
 ## Step 1: Configure Next.js for Standalone Output
@@ -66,14 +66,17 @@ apt update && apt upgrade -y
 Create a `Dockerfile` at your project root. This one works with npm, pnpm, or yarn:
 
 ```dockerfile
-FROM node:20-alpine AS base
+# syntax=docker.io/docker/dockerfile:1
+FROM node:18-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat openssl curl
 WORKDIR /app
 
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# Install dependencies based on the preferred package manager
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
@@ -84,8 +87,18 @@ RUN \
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Next.js collects completely anonymous telemetry data about general usage.
+# Learn more here: https://nextjs.org/telemetry
+# Uncomment the following line in case you want to disable telemetry during the build.
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
@@ -94,26 +107,37 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Production image
+# Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
 ENV NODE_ENV=production
+# Uncomment the following line in case you want to disable telemetry during runtime.
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+# Copy necessary files
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3001
 
-ENV PORT=3000
+ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
+# server.js is created by next build from the standalone output
+# https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
 CMD ["node", "server.js"]
 ```
 
@@ -121,9 +145,13 @@ Add a `.dockerignore`:
 
 ```
 node_modules
-.next
+Dockerfile
+README.md
+.dockerignore
 .git
-*.md
+.next
+.env*
+.kamal/secrets*
 ```
 
 Test locally:
@@ -152,6 +180,7 @@ kamal init
 Add your secrets to `.kamal/secrets`:
 
 ```
+EXAMPLE_SECRET=123
 DOCKER_USERNAME=your-docker-username
 DOCKER_PASSWORD=your-docker-password
 ```
@@ -159,105 +188,143 @@ DOCKER_PASSWORD=your-docker-password
 Configure `config/deploy.yml`:
 
 ```yaml
-service: my-app
-image: your-dockerhub-username/my-app
+service: is
+image: waelassafdev/insentence
+
+env:
+  clear:
+    NODE_ENV: production
+    NEXT_TELEMETRY_DISABLED: 1
+    PORT: 3001
+    NEXT_PUBLIC_SITE_URL: https://insentence.com
+  secret:
+    - DATABASE_URL
 
 servers:
-  web:
-    hosts:
-      - your-server-ip
-    options:
-      publish:
-        - "3000:3000"
+  - 188.137.177.146
 
 proxy:
+  app_port: 3001
   ssl: true
-  host: yourdomain.com
+  host: insentence.com
+  healthcheck:
+    path: /
+    interval: 5
 
 registry:
-  username: your-dockerhub-username
+  username:
+    - DOCKER_USERNAME
   password:
     - DOCKER_PASSWORD
 
 builder:
   arch: amd64
+  remote: ssh://188.137.177.146
+  cache:
+    type: registry
+    options: mode=max
+    image: waelassafdev/insentence-build-cache
 
-asset_path: /app/.next/static
+
+asset_path: /app/.next
 ```
 
-> **Important:** The `asset_path` option tells Kamal to preserve assets between deploys, preventing 404 errors on hashed filenames.
+> **Important:** The `asset_path` is important. It tells Kamal to combine the assets between deploys to avoid 404 errors. This is especially important for Next.js apps, as the filenames change with every build.
 
 ## Step 5: Point Your DNS
 
-Add an A record in Cloudflare (or your DNS provider):
+Now point your DNS records to your server's IP address.
 
-| Type | Name | Value | Proxy |
-|------|------|-------|-------|
-| A | @ | your-server-ip | DNS only |
-| A | www | your-server-ip | DNS only |
+| Type | Name        | Value   | Proxy Status | TTL        |
+|------|-------------|---------|--------------|------------|
+| A    | example.com | 1.2.3.4 | DNS-only     | Automatic  |
 
 ## Step 6: Deploy
 
-Commit your changes:
+Now we just need to git commit our changes:
 
 ```bash
 git add .
 git commit -m "Add Docker and Kamal config"
 ```
 
-Deploy for the first time:
+And Deploy for the first time:
 
 ```bash
 kamal setup
 ```
 
-For subsequent deploys:
+That command will setup everything for us. Installing Docker, building/pushing the container image, deploying the application, etc.
+
+For subsequent deploys we use:
 
 ```bash
 kamal deploy
 ```
 
+But later on, we'll set up a CI/CD pipeline to automate our builds. So we just make edits, commit them, push the code to GitHub,
+and GitHub Actions will take it from there, and deploy our app to the server.  
+
 ## Step 7: Set Up CI/CD with GitHub Actions
 
-Create `.github/workflows/deploy.yml`:
+Since GitHub Actions uses its own secrets system, you don't need to maintain `.kamal/secrets` for automated deployments. You can:
+- Delete the file: `rm .kamal/secrets`
+- Or keep it for local reference, but GitHub Actions won't use it
+
+Create the deploy file `mkdir -p .github/workflows && touch .github/workflows/deploy.yml`
+
+And paste the following in it
 
 ```yaml
 name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version: ["3.2.2"]
+        kamal-version: ["2.2.2"]
+    env:
+      DOCKER_BUILDKIT: 1
+
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
 
-      - name: Install SSH key
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+    - name: Set up Kamal
+      run: gem install kamal -v ${{ matrix.kamal-version }}
 
-      - name: Deploy with Kamal
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          echo "DOCKER_USERNAME=$DOCKER_USERNAME" > .kamal/secrets
-          echo "DOCKER_PASSWORD=$DOCKER_PASSWORD" >> .kamal/secrets
-          
-          docker run --rm \
-            -v "${PWD}:/workdir" \
-            -v "${SSH_AUTH_SOCK}:/ssh-agent" \
-            -e SSH_AUTH_SOCK=/ssh-agent \
-            ghcr.io/basecamp/kamal:latest deploy
+    - uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - uses: docker/setup-buildx-action@v3
+    - name: Build and deploy
+      run: |
+        kamal lock release
+        kamal deploy
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        EXAMPLE_SECRET: ${{ secrets.EXAMPLE_SECRET }}
 ```
-
-Add these secrets to your GitHub repo (Settings → Secrets → Actions):
+Add your secrets to your GitHub repo (Settings → Secrets → Actions):
+- `EXAMPLE_SECRET`
 - `DOCKER_USERNAME`
 - `DOCKER_PASSWORD`
 - `SSH_PRIVATE_KEY` (your private key content)
@@ -309,8 +376,9 @@ Then configure your reverse proxy (Nginx, Caddy, etc.) to route each domain to i
 
 ## Optional: Cloudflare CDN
 
-Once everything works, enable Cloudflare's proxy (orange cloud) on your DNS records to cache static assets at the edge. This significantly improves load times for users worldwide.
+Once everything works, enable Cloudflare's proxy (orange cloud) on your DNS records to cache static assets at the edge.
+This significantly improves load times for users worldwide.
 
 ---
 
-That's it. Your Next.js app is now self-hosted with zero-downtime deployments, CI/CD, and full feature support — all for about $5/month.
+That's it. Your Next.js app is now self-hosted with zero-downtime deployments, CI/CD, and full feature support — all for ~$5/month.
