@@ -10,9 +10,11 @@ Many developers think they MUST use Vercel or other services to host Next.js app
 
 The good news is that **all Next.js features work when self-hosting with Docker** — Server Actions, middleware (now called proxy in v16), internationalization, API routes — everything.
 
-In this tutorial, I'll be deploying an app that I just finished it's called In Sentence.    
+In this tutorial, I'll be deploying an app that I just finished it's called In Sentence. An example sentences project,
+I made this for people looking to know how a certain word is employed in multiple real examples.
+People like poets, essay writers, students, etc
 
-## What You'll Need
+## What We'll Need
 
 - **A VPS** — any $5/month server works (Hetzner, DigitalOcean, etc.)
 - **Docker** — to containerize your app

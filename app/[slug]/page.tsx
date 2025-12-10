@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { ArrowLeftIcon } from "@heroicons/react/24/solid"
 import { getArticleData, getArticleSlugs } from "@/lib/articles"
+import ArticleContent from "@/app/components/ArticleContent"
 
 // Generate static params for all articles at build time
 export async function generateStaticParams() {
@@ -53,10 +54,7 @@ const Article = async ({ params }: { params: Promise<{ slug: string }> }) => {
         </Link>
         <p>{articleData.date.toString()}</p>
       </div>
-      <article
-        className="article"
-        dangerouslySetInnerHTML={{ __html: articleData.contentHtml }}
-      />
+      <ArticleContent html={articleData.contentHtml} />
     </section>
   )
 }

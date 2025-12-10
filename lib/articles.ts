@@ -3,7 +3,10 @@ import path from "path"
 import matter from "gray-matter"
 import moment from "moment"
 import { remark } from "remark"
-import html from "remark-html"
+import remarkGfm from "remark-gfm"
+import remarkRehype from "remark-rehype"
+import rehypeHighlight from "rehype-highlight"
+import rehypeStringify from "rehype-stringify"
 import type { ArticleItem } from "@/types"
 
 // This works on Vercel because it runs at BUILD TIME (static generation)
@@ -17,7 +20,9 @@ export const getArticleSlugs = (): string[] => {
 }
 
 const getSortedArticles = (): ArticleItem[] => {
-  const fileNames = fs.readdirSync(articlesDirectory).filter((f) => f.endsWith(".md"))
+  const fileNames = fs
+    .readdirSync(articlesDirectory)
+    .filter((f) => f.endsWith(".md"))
 
   const allArticlesData = fileNames.map((fileName) => {
     const id = fileName.replace(/\.md$/, "")
@@ -61,8 +66,12 @@ export const getArticleData = async (id: string) => {
 
   const matterResult = matter(fileContents)
 
+  // Use remark with GFM (tables, strikethrough, etc.) and rehype for syntax highlighting
   const processedContent = await remark()
-    .use(html)
+    .use(remarkGfm) // GitHub Flavored Markdown (tables, strikethrough, etc.)
+    .use(remarkRehype) // Convert to rehype (HTML) AST
+    .use(rehypeHighlight) // Syntax highlighting
+    .use(rehypeStringify) // Convert to HTML string
     .process(matterResult.content)
 
   const contentHtml = processedContent.toString()
