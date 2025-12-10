@@ -10,13 +10,15 @@ Many developers think they MUST use Vercel or other services to host Next.js app
 
 The good news is that **all Next.js features work when self-hosting with Docker** — Server Actions, middleware (now called proxy in v16), internationalization, API routes — everything.
 
+In this tutorial, I'll be deploying an app that I just finished it's called In Sentence.    
+
 ## What You'll Need
 
+- **A VPS** — any $5/month server works (Hetzner, DigitalOcean, etc.)
 - **Docker** — to containerize your app
 - **Kamal 2.0** — a deployment tool with zero-downtime deploys
-- **A VPS** — any $5/month server works (Hetzner, DigitalOcean, etc.)
-- **Cloudflare** — optional
 - **GitHub Actions** — for CI/CD automation
+- **Cloudflare** — optional
 
 ## Step 1: Configure Next.js for Standalone Output
 
@@ -36,7 +38,7 @@ export default nextConfig
 
 Order an Ubuntu VPS and create an SSH connection.
 
-Check if you have an SSH key:
+Check if you have an SSH key on your local machine:
 
 ```bash
 ls ~/.ssh/id_rsa.pub
@@ -60,6 +62,8 @@ SSH into your server and update packages:
 ssh root@your-server-ip
 apt update && apt upgrade -y
 ```
+
+_Replace your-server-ip in previous commands with your actual server IP_
 
 ## Step 3: Create the Dockerfile
 
@@ -131,9 +135,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3001
+EXPOSE 3000
 
-ENV PORT=3001
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # server.js is created by next build from the standalone output
@@ -161,6 +165,8 @@ docker build -t my-nextjs-app .
 docker run -p 3000:3000 --env-file .env my-nextjs-app
 ```
 
+_Note: I used Prisma in my project so you can remove any commands that do not relate to your project in the `Dockerfile`_
+
 Visit `http://localhost:3000` to verify it works.
 
 ## Step 4: Set Up Kamal
@@ -180,7 +186,7 @@ kamal init
 Add your secrets to `.kamal/secrets`:
 
 ```
-EXAMPLE_SECRET=123
+DATABASE_URL=123
 DOCKER_USERNAME=your-docker-username
 DOCKER_PASSWORD=your-docker-password
 ```
@@ -195,7 +201,7 @@ env:
   clear:
     NODE_ENV: production
     NEXT_TELEMETRY_DISABLED: 1
-    PORT: 3001
+    PORT: 3000
     NEXT_PUBLIC_SITE_URL: https://insentence.com
   secret:
     - DATABASE_URL
@@ -204,7 +210,7 @@ servers:
   - 188.137.177.146
 
 proxy:
-  app_port: 3001
+  app_port: 3000
   ssl: true
   host: insentence.com
   healthcheck:
@@ -235,9 +241,9 @@ asset_path: /app/.next
 
 Now point your DNS records to your server's IP address.
 
-| Type | Name        | Value   | Proxy Status | TTL        |
-|------|-------------|---------|--------------|------------|
-| A    | example.com | 1.2.3.4 | DNS-only     | Automatic  |
+| Type | Name           | Value   | Proxy Status | TTL        |
+|------|----------------|---------|--------------|------------|
+| A    | insentence.com | 188.137.177.146 | DNS-only     | Automatic  |
 
 ## Step 6: Deploy
 
@@ -321,10 +327,10 @@ jobs:
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        EXAMPLE_SECRET: ${{ secrets.EXAMPLE_SECRET }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
 ```
 Add your secrets to your GitHub repo (Settings → Secrets → Actions):
-- `EXAMPLE_SECRET`
+- `DATABASE_URL`
 - `DOCKER_USERNAME`
 - `DOCKER_PASSWORD`
 - `SSH_PRIVATE_KEY` (your private key content)
