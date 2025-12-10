@@ -68,6 +68,7 @@
 .article pre {
   position: relative;
   background-color: #1e1e1e;
+  color: #c9d1d9;
   padding: 1.25rem;
   padding-top: 2.5rem;
   overflow-x: auto;
