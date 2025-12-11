@@ -1,7 +1,7 @@
 ---
 title: "Have $5? Let's Self-Host a Next.js app"
 category: "tutorials"
-date: "08-12-2024"
+date: "08-12-2025"
 ---
 
 # Have $5? Let's Self-Host a Next.js app
@@ -253,7 +253,7 @@ Now we just need to git commit our changes:
 
 ```bash
 git add .
-git commit -m "Add Docker and Kamal config"
+git commit -m "First Deploy"
 ```
 
 And Deploy for the first time:
@@ -264,13 +264,13 @@ kamal setup
 
 That command will setup everything for us. Installing Docker, building/pushing the container image, deploying the application, etc.
 
-For subsequent deploys we use:
+For subsequent deploys we commit the changes and run:
 
 ```bash
 kamal deploy
 ```
 
-But later on, we'll set up a CI/CD pipeline to automate our builds. So we just make edits, commit them, push the code to GitHub,
+But next, we'll set up a CI/CD pipeline to automate our builds. So we just make edits, commit them, push the code to GitHub,
 and GitHub Actions will take it from there, and deploy our app to the server.  
 
 ## Step 7: Set Up CI/CD with GitHub Actions
@@ -279,7 +279,7 @@ Since GitHub Actions uses its own secrets system, you don't need to maintain `.k
 - Delete the file: `rm .kamal/secrets`
 - Or keep it for local reference, but GitHub Actions won't use it
 
-Create the deploy file `mkdir -p .github/workflows && touch .github/workflows/deploy.yml`
+Create the deployment file `mkdir -p .github/workflows && touch .github/workflows/deploy.yml`
 
 And paste the following in it
 
