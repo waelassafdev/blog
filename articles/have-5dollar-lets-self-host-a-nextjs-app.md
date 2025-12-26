@@ -1,7 +1,7 @@
 ---
 title: "Have $5? Let's Self-Host a Next.js app"
 category: "tutorials"
-date: "08-12-2025"
+date: "27-12-2025"
 ---
 
 # Have $5? Let's Self-Host a Next.js app
