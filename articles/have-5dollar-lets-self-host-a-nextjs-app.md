@@ -131,10 +131,14 @@ Add `.dockerignore`:
 
 ```
 node_modules
+insentence-lab
+Dockerfile
+README.md
+.dockerignore
 .git
 .next
 .env*
-```
+.kamal/secrets*```
 
 ### Build & Run
 
