@@ -201,16 +201,15 @@ Configure `config/deploy.yml`:
 
 ```yaml
 service: is
-image: waelassafdev/insentence
+image: waelassafdev/sentence-app
 
 env:
   clear:
-    NODE_ENV: production
-    NEXT_TELEMETRY_DISABLED: 1
-    PORT: 3000
-    NEXT_PUBLIC_SITE_URL: https://insentence.com
-  secret:
-    - DATABASE_URL
+    NEXT_PUBLIC_SITE_URL: <%= ENV['NEXT_PUBLIC_SITE_URL'] %>
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: <%= ENV['NEXT_PUBLIC_TURNSTILE_SITE_KEY'] %>
+    DATABASE_URL: <%= ENV['DATABASE_URL'] %>
+    OPENAI_API_KEY: <%= ENV['OPENAI_API_KEY'] %>
+    TURNSTILE_SECRET_KEY: <%= ENV['TURNSTILE_SECRET_KEY'] %>
 
 servers:
   - your-server-ip-address
@@ -235,7 +234,7 @@ builder:
   cache:
     type: registry
     options: mode=max
-    image: waelassafdev/insentence-build-cache
+    image: waelassafdev/sentence-app-build-cache
 
 
 asset_path: /app/.next
