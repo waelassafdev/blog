@@ -191,7 +191,7 @@ env:
     - DATABASE_URL
 
 servers:
-  - 188.137.177.146
+  - your-server-ip-address
 
 proxy:
   app_port: 3000
@@ -209,7 +209,7 @@ registry:
 
 builder:
   arch: amd64
-  remote: ssh://188.137.177.146
+  remote: ssh://your-server-ip-address
   cache:
     type: registry
     options: mode=max
@@ -227,7 +227,7 @@ Now point your DNS records to your server's IP address.
 
 | Type | Name           | Value   | Proxy Status | TTL        |
 |------|----------------|---------|--------------|------------|
-| A    | insentence.com | 188.137.177.146 | DNS-only     | Automatic  |
+| A    | insentence.com | your-server-ip-address | DNS-only     | Automatic  |
 
 ## Step 6: Deploy
 
