@@ -55,7 +55,7 @@ ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 Copy your public key to the server:
 
 ```bash
-cat ~/.ssh/id_rsa.pub | ssh root@your-server-ip "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+ssh-copy-id root@your-server-ip
 ```
 
 SSH into your server and update packages:
