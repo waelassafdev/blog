@@ -193,6 +193,8 @@ Add your secrets to `.kamal/secrets`:
 
 ```
 DATABASE_URL=123
+OPENAI_API_KEY=abc
+TURNSTILE_SECRET_KEY=0x4....
 DOCKER_USERNAME=your-docker-username
 DOCKER_PASSWORD=your-docker-password
 ```
