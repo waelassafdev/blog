@@ -138,7 +138,8 @@ README.md
 .git
 .next
 .env*
-.kamal/secrets*```
+.kamal/secrets*
+```
 
 ### Build & Run
 
