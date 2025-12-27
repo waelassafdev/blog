@@ -73,12 +73,12 @@ Create a `Dockerfile` at your project root. This one works with npm, pnpm, or ya
 
 ```dockerfile
 # syntax=docker.io/docker/dockerfile:1
-FROM node:20-alpine AS base
+FROM node:20-alpine3.20 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat openssl curl
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -97,6 +97,10 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Accept DATABASE_URL as build argument for static page generation
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -121,6 +125,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
+
 # Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -160,16 +165,41 @@ README.md
 .kamal/secrets*
 ```
 
-Test locally:
+### Building and Running
 
+**Important Note for Prisma Users:** If your Next.js app uses Prisma and has pages that perform static generation (SSG) with database queries, you'll need to provide the `DATABASE_URL` during the build phase. This is because Next.js tries to pre-render these pages at build time.
+
+Build the image:
+
+```bash
+# Replace YOUR_DATABASE_URL with your actual database connection string
+docker build --build-arg DATABASE_URL="YOUR_DATABASE_URL" -t sentence-app .
+```
+
+**Security Note:** The `DATABASE_URL` passed as a build argument is only used during the build process for static page generation and is **not** stored in the final Docker image. It's discarded after the build completes. Your runtime database credentials are safely loaded from the `.env` file.
+
+Run the container:
+
+```bash
+docker run -p 3000:3000 --env-file .env sentence-app
+```
+
+Visit `http://localhost:3000` to verify it works.
+
+---
+
+**Alternative:** If your pages don't need static generation with database access, you can skip the `--build-arg DATABASE_URL` and add `export const dynamic = 'force-dynamic'` to your pages/layout that query the database. This makes those pages render at request time instead of build time.
+
+**Non-Prisma Users:** If you're not using Prisma, you can remove:
+- The `ARG DATABASE_URL` and `ENV DATABASE_URL=$DATABASE_URL` lines
+- The `RUN npx prisma generate` line
+- The `RUN apk add --no-cache openssl` line in the runner stage
+
+Then build simply with:
 ```bash
 docker build -t sentence-app .
 docker run -p 3000:3000 --env-file .env sentence-app
 ```
-
-_Note: I used Prisma in my project so you can remove any commands that do not relate to your project in the `Dockerfile`_
-
-Visit `http://localhost:3000` to verify it works.
 
 ## Step 4: Set Up Kamal
 
