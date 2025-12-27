@@ -69,19 +69,16 @@ _Replace your-server-ip in previous commands with your actual server IP_
 
 ## Step 3: Create the Dockerfile
 
-Create a `Dockerfile` at your project root. This one works with npm, pnpm, or yarn:
+Create a `Dockerfile` at your project root:
 
 ```dockerfile
 # syntax=docker.io/docker/dockerfile:1
 FROM node:20-alpine3.20 AS base
 
-# Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
@@ -90,24 +87,16 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Accept DATABASE_URL as build argument for static page generation
+# Needed for Prisma + static page generation
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
-# Generate Prisma client
 RUN npx prisma generate
-
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN \
@@ -117,89 +106,47 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
-# Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
-
 ENV NODE_ENV=production
-
-# Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
-
 EXPOSE 3000
-
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
 CMD ["node", "server.js"]
 ```
 
-Add a `.dockerignore`:
+Add `.dockerignore`:
 
 ```
 node_modules
-Dockerfile
-README.md
-.dockerignore
 .git
 .next
 .env*
-.kamal/secrets*
 ```
 
-### Building and Running
-
-**Important Note for Prisma Users:** If your Next.js app uses Prisma and has pages that perform static generation (SSG) with database queries, you'll need to provide the `DATABASE_URL` during the build phase. This is because Next.js tries to pre-render these pages at build time.
-
-Build the image:
+### Build & Run
 
 ```bash
-# Replace YOUR_DATABASE_URL with your actual database connection string
-docker build --build-arg DATABASE_URL="YOUR_DATABASE_URL" -t sentence-app .
-```
+# Build (pass DATABASE_URL for static page generation)
+docker build --build-arg DATABASE_URL="your_db_url_here" -t sentence-app .
 
-**Security Note:** The `DATABASE_URL` passed as a build argument is only used during the build process for static page generation and is **not** stored in the final Docker image. It's discarded after the build completes. Your runtime database credentials are safely loaded from the `.env` file.
-
-Run the container:
-
-```bash
+# Run
 docker run -p 3000:3000 --env-file .env sentence-app
 ```
 
-Visit `http://localhost:3000` to verify it works.
-
----
-
-**Alternative:** If your pages don't need static generation with database access, you can skip the `--build-arg DATABASE_URL` and add `export const dynamic = 'force-dynamic'` to your pages/layout that query the database. This makes those pages render at request time instead of build time.
-
-**Non-Prisma Users:** If you're not using Prisma, you can remove:
-- The `ARG DATABASE_URL` and `ENV DATABASE_URL=$DATABASE_URL` lines
-- The `RUN npx prisma generate` line
-- The `RUN apk add --no-cache openssl` line in the runner stage
-
-Then build simply with:
-```bash
-docker build -t sentence-app .
-docker run -p 3000:3000 --env-file .env sentence-app
-```
+**Note:** The `DATABASE_URL` is only needed during build for static page generation - it's NOT stored in the final image. If you're not using Prisma, remove the `ARG/ENV DATABASE_URL` and `RUN npx prisma generate` lines.
 
 ## Step 4: Set Up Kamal
 
