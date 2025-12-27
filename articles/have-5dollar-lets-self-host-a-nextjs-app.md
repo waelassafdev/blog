@@ -73,7 +73,7 @@ Create a `Dockerfile` at your project root. This one works with npm, pnpm, or ya
 
 ```dockerfile
 # syntax=docker.io/docker/dockerfile:1
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
