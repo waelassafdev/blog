@@ -205,14 +205,17 @@ image: waelassafdev/sentence-app
 
 env:
   clear:
-    NEXT_PUBLIC_SITE_URL: <%= ENV['NEXT_PUBLIC_SITE_URL'] %>
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: <%= ENV['NEXT_PUBLIC_TURNSTILE_SITE_KEY'] %>
-    DATABASE_URL: <%= ENV['DATABASE_URL'] %>
-    OPENAI_API_KEY: <%= ENV['OPENAI_API_KEY'] %>
-    TURNSTILE_SECRET_KEY: <%= ENV['TURNSTILE_SECRET_KEY'] %>
+    NODE_ENV: production
+    PORT: 3000
+    NEXT_PUBLIC_SITE_URL: https://insentence.com
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAACHrJ1X6JhJ1vXHQ
+  secret:
+    - DATABASE_URL
+    - OPENAI_API_KEY
+    - TURNSTILE_SECRET_KEY
 
 servers:
-  - your-server-ip-address
+  - 185.229.251.232
 
 proxy:
   app_port: 3000
@@ -230,11 +233,15 @@ registry:
 
 builder:
   arch: amd64
-  remote: ssh://your-server-ip-address
+  remote: ssh://185.229.251.232
   cache:
     type: registry
     options: mode=max
     image: waelassafdev/sentence-app-build-cache
+  args:
+    DATABASE_URL:
+      secret: true
+
 
 
 asset_path: /app/.next
