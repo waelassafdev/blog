@@ -163,8 +163,8 @@ README.md
 Test locally:
 
 ```bash
-docker build -t my-nextjs-app .
-docker run -p 3000:3000 --env-file .env my-nextjs-app
+docker build -t sentence-app .
+docker run -p 3000:3000 --env-file .env sentence-app
 ```
 
 _Note: I used Prisma in my project so you can remove any commands that do not relate to your project in the `Dockerfile`_
