@@ -8,7 +8,7 @@ date: "27-12-2025"
 
 Many developers think they MUST use Vercel or other services to host Next.js applications.
 
-The good news is that **all Next.js features work when self-hosting with Docker** — Server Actions, middleware (now called proxy in v16), internationalization, API routes — everything.
+The good news is that **all Next.js features work when self-hosting with Docker** – Server Actions, middleware (now called proxy in v16), internationalization, API routes – everything.
 
 In this tutorial, I'll be deploying an app that I just finished it's called In Sentence. An example sentences project,
 I made this for people looking to know how a certain word is employed in multiple real examples.
@@ -16,11 +16,11 @@ People like poets, essay writers, students, etc
 
 ## What We'll Need
 
-- **A VPS** — any $5/month server works (Hetzner, DigitalOcean, etc.)
-- **Docker** — to containerize your app
-- **Kamal 2.0** — a deployment tool with zero-downtime deploys
-- **GitHub Actions** — for CI/CD automation
-- **Cloudflare** — optional
+- **A VPS** – any $5/month server works (Hetzner, DigitalOcean, etc.)
+- **Docker** – to containerize your app
+- **Kamal 2.0** – a deployment tool with zero-downtime deploys
+- **GitHub Actions** – for CI/CD automation
+- **Cloudflare** – optional
 
 ## Step 1: Configure Next.js for Standalone Output
 
@@ -100,7 +100,10 @@ COPY . .
 
 # Needed for Prisma + static page generation
 ARG DATABASE_URL
+
 ENV DATABASE_URL=$DATABASE_URL
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAACHrJ1X6JhJ1vXHQ
+ENV NEXT_PUBLIC_SITE_URL=https://insentence.com
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -124,6 +127,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
+ENV PORT=3000
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # Learn more here: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -189,35 +193,38 @@ Initialize Kamal in your project:
 kamal init
 ```
 
-Add your secrets to `.kamal/secrets`:
+### Local Secrets Configuration
+
+For local deployments, create a `.env` file at your project root with your secrets:
 
 ```
-DATABASE_URL=123
-OPENAI_API_KEY=abc
-TURNSTILE_SECRET_KEY=0x4....
+DATABASE_URL=your_database_url
+OPENAI_API_KEY=your_openai_key
+TURNSTILE_SECRET_KEY=your_turnstile_key
 DOCKER_USERNAME=your-docker-username
 DOCKER_PASSWORD=your-docker-password
 ```
 
+**Important:** Add `.env` to your `.gitignore` to keep secrets out of version control.
+
 Configure `config/deploy.yml`:
 
 ```yaml
+<% require "dotenv"; Dotenv.load(".env") %>
+
 service: is
 image: waelassafdev/sentence-app
 
 env:
   clear:
-    NODE_ENV: production
-    PORT: 3000
-    NEXT_PUBLIC_SITE_URL: https://insentence.com
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAACHrJ1X6JhJ1vXHQ
-  secret:
-    - DATABASE_URL
-    - OPENAI_API_KEY
-    - TURNSTILE_SECRET_KEY
+    DATABASE_URL: <%= ENV['DATABASE_URL'] %>
+    OPENAI_API_KEY: <%= ENV['OPENAI_API_KEY'] %>
+    TURNSTILE_SECRET_KEY: <%= ENV['TURNSTILE_SECRET_KEY'] %>
 
 servers:
-  - 185.229.251.232
+  web:
+    hosts:
+      - 185.229.251.232
 
 proxy:
   app_port: 3000
@@ -228,22 +235,18 @@ proxy:
     interval: 5
 
 registry:
-  username:
-    - DOCKER_USERNAME
-  password:
-    - DOCKER_PASSWORD
+  username: <%= ENV['DOCKER_USERNAME'] %>
+  password: <%= ENV['DOCKER_PASSWORD'] %>
 
 builder:
   arch: amd64
-  remote: ssh://185.229.251.232
+  remote: ssh://root@185.229.251.232
   cache:
     type: registry
     options: mode=max
     image: waelassafdev/sentence-app-build-cache
   args:
-    DATABASE_URL:
-      secret: true
-
+    DATABASE_URL: <%= ENV['DATABASE_URL'] %>
 
 
 asset_path: /app/.next
@@ -283,17 +286,32 @@ kamal deploy
 ```
 
 But next, we'll set up a CI/CD pipeline to automate our builds. So we just make edits, commit them, push the code to GitHub,
-and GitHub Actions will take it from there, and deploy our app to the server.  
+and GitHub Actions will take it from there, and deploy our app to the server.
 
 ## Step 7: Set Up CI/CD with GitHub Actions
 
-Since GitHub Actions uses its own secrets system, you don't need to maintain `.kamal/secrets` for automated deployments. You can:
-- Delete the file: `rm .kamal/secrets`
-- Or keep it for local reference, but GitHub Actions won't use it
+Once GitHub Actions is configured, you won't need the local `.env` file anymore since all secrets will be managed through GitHub's secrets system.
 
-Create the deployment file `mkdir -p .github/workflows && touch .github/workflows/deploy.yml`
+### Add GitHub Secrets
 
-And paste the following in it
+Go to your GitHub repository → Settings → Secrets and variables → Actions, and add these Repository secrets:
+
+- `DATABASE_URL`
+- `DOCKER_PASSWORD`
+- `DOCKER_USERNAME`
+- `OPENAI_API_KEY`
+- `SSH_PRIVATE_KEY` (your private key content from `~/.ssh/id_rsa`)
+- `TURNSTILE_SECRET_KEY`
+
+### Create Deployment Workflow
+
+Create the deployment file:
+
+```bash
+mkdir -p .github/workflows && touch .github/workflows/deploy.yml
+```
+
+And paste the following in it:
 
 ```yaml
 name: Deploy
@@ -318,38 +336,35 @@ jobs:
       DOCKER_BUILDKIT: 1
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Ruby ${{ matrix.ruby-version }}
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby-version }}
-        bundler-cache: true
+      - name: Set up Ruby ${{ matrix.ruby-version }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
 
-    - name: Set up Kamal
-      run: gem install kamal -v ${{ matrix.kamal-version }}
+      - name: Set up Kamal
+        run: gem install kamal -v ${{ matrix.kamal-version }}
 
-    - uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - uses: docker/setup-buildx-action@v3
-    - name: Build and deploy
-      run: |
-        kamal lock release
-        kamal deploy
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and deploy
+        run: |
+          kamal lock release
+          kamal deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 ```
-Add your secrets to your GitHub repo (Settings → Secrets → Actions):
-- `DATABASE_URL`
-- `DOCKER_USERNAME`
-- `DOCKER_PASSWORD`
-- `SSH_PRIVATE_KEY` (your private key content)
 
-Now every push to `main` triggers a deployment.
+Now every push to `main` triggers a deployment using the secrets stored in GitHub.
 
 ## Debugging
 
@@ -371,29 +386,6 @@ Monitor resources:
 docker stats
 ```
 
-## Running Multiple Apps on One Server
-
-You can't run multiple apps on port 3000. Use different ports:
-
-```yaml
-# Site 1 - port 3000
-options:
-  publish:
-    - "3000:3000"
-
-# Site 2 - port 3001
-options:
-  publish:
-    - "3001:3000"
-
-# Site 3 - port 3002
-options:
-  publish:
-    - "3002:3000"
-```
-
-Then configure your reverse proxy (Nginx, Caddy, etc.) to route each domain to its port.
-
 ## Optional: Cloudflare CDN
 
 Once everything works, enable Cloudflare's proxy (orange cloud) on your DNS records to cache static assets at the edge.
@@ -401,4 +393,4 @@ This significantly improves load times for users worldwide.
 
 ---
 
-That's it. Your Next.js app is now self-hosted with zero-downtime deployments, CI/CD, and full feature support — all for ~$5/month.
+That's it. Your Next.js app is now self-hosted with zero-downtime deployments, CI/CD, and full feature support – all for ~$5/month.
