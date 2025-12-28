@@ -181,10 +181,10 @@ docker run -p 3000:3000 --env-file .env sentence-app
 
 ## Step 4: Set Up Kamal
 
-Install Kamal as a Docker alias in your `~/.zshrc`:
+Install Kamal
 
 ```bash
-alias kamal='docker run -it --rm -v "${PWD}:/workdir" -v "/run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock" -e SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock" -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/basecamp/kamal:2.7.0'
+gem install kamal
 ```
 
 Initialize Kamal in your project:
