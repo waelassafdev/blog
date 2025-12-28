@@ -1,10 +1,10 @@
 ---
-title: "Have $5? Let's Self-Host a Next.js app"
+title: "Have $5? Let's Self-Host a Next.js app With Prisma"
 category: "tutorials"
 date: "27-12-2025"
 ---
 
-# Have $5? Let's Self-Host a Next.js app
+# Have $5? Let's Self-Host a Next.js app With Prisma
 
 Many developers think they MUST use Vercel or other services to host Next.js applications.
 
