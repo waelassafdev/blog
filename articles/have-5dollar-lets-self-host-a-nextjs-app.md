@@ -391,6 +391,16 @@ docker stats
 Once everything works, enable Cloudflare's proxy (orange cloud) on your DNS records to cache static assets at the edge.
 This significantly improves load times for users worldwide.
 
+## Deploying Multiple Apps to the Same Server
+
+You can deploy multiple projects to the same server with Kamal. Just ensure each project has:
+
+1. **Different `service` name** in `deploy.yml`
+2. **Different `host`** in proxy (different domain)
+3. **Different `image` name**
+
+Kamal uses the service name to keep containers separate.
+
 ---
 
 That's it. Your Next.js app is now self-hosted with zero-downtime deployments, CI/CD, and full feature support – all for ~$5/month.
