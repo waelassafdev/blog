@@ -391,7 +391,7 @@ docker stats
 Once everything works, enable Cloudflare's proxy (orange cloud) on your DNS records to cache static assets at the edge.
 This significantly improves load times for users worldwide.
 
-## Deploying Multiple Apps to the Same Server
+## Extra: Deploying Multiple Apps to the Same Server
 
 You can deploy multiple projects to the same server with Kamal. Just ensure each project has:
 
