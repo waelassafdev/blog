@@ -224,7 +224,7 @@ env:
 servers:
   web:
     hosts:
-      - 185.229.251.232
+      - your-server-ip-address
 
 proxy:
   app_port: 3000
@@ -240,7 +240,7 @@ registry:
 
 builder:
   arch: amd64
-  remote: ssh://root@185.229.251.232
+  remote: ssh://root@your-server-ip-address
   cache:
     type: registry
     options: mode=max
