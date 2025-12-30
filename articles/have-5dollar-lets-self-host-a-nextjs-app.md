@@ -6,6 +6,8 @@ date: "27-12-2025"
 
 # Have $5? Let's Self-Host a Next.js app With Prisma
 
+> **Note:** This post works best as a companion guide to [the YouTube video](YOUR_VIDEO_LINK_HERE) where I walk through the entire process. Watch the video to get a feel for the workflow, then use this guide as reference.
+
 Many developers think they MUST use Vercel or other services to host Next.js applications.
 
 The good news is that **all Next.js features work when self-hosting with Docker** – Server Actions, middleware (now called proxy in v16), internationalization, API routes – everything.
@@ -180,6 +182,8 @@ docker run -p 3000:3000 --env-file .env sentence-app
 **Note:** The `DATABASE_URL` is only needed during build for static page generation - it's NOT stored in the final image. If you're not using Prisma, remove the `ARG/ENV DATABASE_URL` and `RUN npx prisma generate` lines.
 
 ## Step 4: Set Up Kamal
+
+**Note:** If you don't have Homebrew's Ruby installed, macOS's system Ruby is outdated and will cause issues with Kamal. [See the section below](#installing-homebrew-ruby) for installation instructions before proceeding.
 
 Install Kamal
 
@@ -404,3 +408,39 @@ Kamal uses the service name to keep containers separate.
 ---
 
 That's it. Your Next.js app is now self-hosted with zero-downtime deployments, CI/CD, and full feature support – all for ~$5/month.
+
+---
+
+<div id="installing-homebrew-ruby" style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280;">
+
+### Installing Homebrew Ruby
+
+<small>macOS ships with an outdated Ruby that causes issues with modern gems. Install Homebrew's Ruby instead.</small>
+
+<small>**Install Homebrew:**</small>
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+<small>**Install Ruby:**</small>
+
+```bash
+brew install ruby
+```
+
+<small>**Update your PATH:**</small>
+
+```bash
+echo 'export PATH="/opt/homebrew/opt/ruby/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+<small>**Verify:**</small>
+
+```bash
+which ruby
+# Should output: /opt/homebrew/opt/ruby/bin/ruby
+```
+
+</div>
