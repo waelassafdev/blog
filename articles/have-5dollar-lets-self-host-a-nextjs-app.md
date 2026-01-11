@@ -6,7 +6,7 @@ date: "27-12-2025"
 
 # Have $5? Let's Self-Host a Next.js app With Prisma
 
-> **Note:** This post works best as a companion guide to [the YouTube video](YOUR_VIDEO_LINK_HERE) where I walk through the entire process. Watch the video to get a feel for the workflow, then use this guide as reference.
+> **Note:** This post works best as a companion guide to [the YouTube video](https://www.youtube.com/watch?v=ouevv83LhGs) where I walk through the entire process. Watch the video to get a feel for the workflow, then use this guide as reference.
 
 Many developers think they MUST use Vercel or other services to host Next.js applications.
 
