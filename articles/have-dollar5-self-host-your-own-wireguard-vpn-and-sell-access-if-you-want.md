@@ -1,5 +1,5 @@
 ---
-title: "Have $5? Self-Host Your Own WireGuard VPN Server
+title: "Have $5? Self-Host Your Own WireGuard VPN Server"
 category: "tutorials"
 date: "11-01-2026"
 ---
